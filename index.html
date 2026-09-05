@@ -110,6 +110,7 @@
             display: flex;
             flex: 1;
             overflow: hidden;
+            position: relative;
         }
 
         .sidebar {
@@ -119,6 +120,7 @@
             overflow-y: auto;
             padding: 20px;
             box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+            transition: left 0.3s ease;
         }
 
         .map-container {
@@ -252,11 +254,43 @@
 
         .modal-card {
             background: white;
-            max-width: 420px;
+            max-width: 480px;
             width: 90%;
-            padding: 28px;
-            border-radius: 32px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 24px;
+            border-radius: 24px;
             text-align: center;
+        }
+
+        .terms-box {
+            display: none;
+            text-align: left;
+            font-size: 12px;
+            line-height: 1.4;
+            color: var(--gray-700);
+            background: var(--gray-100);
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 12px;
+            margin: 10px 0;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .terms-box h4 {
+            color: var(--primary-dark);
+            margin-bottom: 6px;
+        }
+
+        .terms-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            margin: 10px 0;
+            text-align: left;
+            cursor: pointer;
         }
 
         /* Chat */
@@ -276,6 +310,22 @@
             cursor: pointer;
             box-shadow: var(--shadow);
             z-index: 99;
+        }
+
+        .menu-toggle-btn {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: var(--primary-dark);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 30px;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 99;
+            cursor: pointer;
         }
 
         .chat-window {
@@ -340,13 +390,16 @@
             .sidebar {
                 position: absolute;
                 left: -360px;
-                top: 70px;
-                height: calc(100vh - 70px);
+                top: 0;
+                bottom: 0;
+                height: 100%;
                 z-index: 200;
-                transition: left 0.3s;
             }
             .sidebar.open {
                 left: 0;
+            }
+            .menu-toggle-btn {
+                display: block;
             }
         }
     </style>
@@ -430,7 +483,9 @@
     </div>
 </div>
 
+<button class="menu-toggle-btn" id="menuToggleBtn">📋 Меню</button>
 <div class="chat-fab" id="chatFab">💬</div>
+
 <div class="chat-window" id="chatWindow">
     <div class="chat-header">Поддержка <span style="float:right; cursor:pointer" id="closeChat">✕</span></div>
     <div class="chat-msgs" id="chatMessages"></div>
@@ -444,19 +499,46 @@
 <div id="authModal" class="modal">
     <div class="modal-card">
         <h3><i class="fas fa-leaf"></i> <span id="authTitle">Татарстан Экокартасына керү</span></h3>
-        <div style="margin: 16px 0;">
+        
+        <div style="margin: 12px 0;">
             <input type="text" id="loginEmail" placeholder="Email">
             <input type="password" id="loginPassword" placeholder="Серсүз / Пароль">
         </div>
         <button id="doLogin" class="btn-primary"><span id="loginBtnText">Керү / Войти</span></button>
+        
         <hr style="margin: 16px 0">
         <p><span id="noAccountText">Аккаунт юк?</span> <span id="registerHereText">Теркәлү</span></p>
-        <input type="text" id="regName" placeholder="Исем / Имя">
-        <input type="text" id="regEmail" placeholder="Email">
-        <input type="password" id="regPassword" placeholder="Серсүз (4 хәрефтән) / Пароль (мин 4)">
+        
+        <div style="margin: 12px 0;">
+            <input type="text" id="regName" placeholder="Исем / Имя">
+            <input type="text" id="regEmail" placeholder="Email">
+            <input type="password" id="regPassword" placeholder="Серсүз (4 хәрефтән) / Пароль (мин 4)">
+        </div>
+
+        <label class="terms-label">
+            <input type="checkbox" id="agreeTerms">
+            <span>Я согласен с <a href="#" id="toggleTermsBtn" style="color:var(--primary); text-decoration:underline;">Пользовательским соглашением</a></span>
+        </label>
+
+        <div class="terms-box" id="termsBox">
+            <h4>ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ</h4>
+            <p><b>Дата вступления в силу:</b> 5 сентября 2026 г.</p>
+            <p>Настоящее Соглашение регулирует отношения между Администрацией сетевого издания ecotatarstan.ru и Пользователем. Использование Сайта означает полное согласие с Соглашением.</p>
+            <br>
+            <p><b>1. Предмет соглашения</b><br>Предоставление доступа к информационной платформе экологических инициатив, раздельного сбора отходов и эко-маршрутов в РТ.</p>
+            <br>
+            <p><b>2. Территория и право</b><br>Деятельность ориентирована на Республику Татарстан и РФ. Применяется законодательство РФ и нормативные акты РТ.</p>
+            <br>
+            <p><b>3. Персональные данные и геоданные</b><br>Обработка данных (Имя, Email, Телефон) выполняется по ФЗ № 152-ФЗ. Данные о геолокации запрашиваются добровольно для поиска пунктов сбора.</p>
+            <br>
+            <p><b>4. Обязанности пользователя</b><br>Не использовать сайт в противоправных целях, соблюдать авторские права и не нарушать работу сервиса.</p>
+            <br>
+            <p><b>5. Контакты</b><br>E-mail: ecotatarstan.ru@yandex.ru</p>
+        </div>
+
         <button id="doRegister" style="margin-top:8px; background:#10b981; color:white; width:100%; padding:10px; border:none; border-radius:30px;"><span id="regBtnText">Теркәлү</span></button>
         <p id="authMsg" style="color:red; margin-top:12px; font-size:13px;"></p>
-        <button id="closeModal" style="margin-top:16px; background:#e5e7eb; width:100%; padding:10px; border:none; border-radius:30px;">Ябу / Закрыть</button>
+        <button id="closeModal" style="margin-top:12px; background:#e5e7eb; width:100%; padding:10px; border:none; border-radius:30px;">Ябу / Закрыть</button>
     </div>
 </div>
 
@@ -560,7 +642,6 @@
     let tempPlacemark = null;
     let ratingChart = null;
 
-    // Проверяем сохраненного пользователя при старте
     function checkSavedUser() {
         const saved = localStorage.getItem('ecomap_user');
         if (saved) {
@@ -588,7 +669,7 @@
     }
 
     function initMap() {
-        checkSavedUser(); // Восстанавливаем авторизацию
+        checkSavedUser();
 
         ymaps.ready(() => {
             map = new ymaps.Map("map", {
@@ -823,7 +904,7 @@
 
             if(res.ok) {
                 currentUser = data.user || data;
-                localStorage.setItem('ecomap_user', JSON.stringify(currentUser)); // Сохраняем вход
+                localStorage.setItem('ecomap_user', JSON.stringify(currentUser));
                 
                 closeModal();
                 updateUI();
@@ -842,9 +923,15 @@
         let name = document.getElementById("regName").value.trim();
         let email = document.getElementById("regEmail").value.trim();
         let password = document.getElementById("regPassword").value;
+        let agree = document.getElementById("agreeTerms").checked;
 
         if(!name || !email || !password) {
             document.getElementById("authMsg").innerHTML = "❌ Заполните все поля";
+            return;
+        }
+
+        if(!agree) {
+            document.getElementById("authMsg").innerHTML = "❌ Подтвердите согласие с Пользовательским соглашением";
             return;
         }
 
@@ -859,7 +946,7 @@
 
             if(res.ok) {
                 currentUser = data.user || data;
-                localStorage.setItem('ecomap_user', JSON.stringify(currentUser)); // Автоматически входим при регистрации
+                localStorage.setItem('ecomap_user', JSON.stringify(currentUser));
                 
                 closeModal();
                 updateUI();
@@ -867,6 +954,7 @@
                 document.getElementById("regName").value = "";
                 document.getElementById("regEmail").value = "";
                 document.getElementById("regPassword").value = "";
+                document.getElementById("agreeTerms").checked = false;
                 await loadData();
             } else {
                 document.getElementById("authMsg").innerHTML = `❌ ${data.error || 'Ошибка регистрации'}`;
@@ -877,7 +965,7 @@
     }
     
     function logout() {
-        localStorage.removeItem('ecomap_user'); // Удаляем сохраненный вход
+        localStorage.removeItem('ecomap_user');
         currentUser = null;
         updateUI();
         alert("Сез системадан чыктыгыз / Вы вышли из системы");
@@ -911,6 +999,12 @@
     document.querySelectorAll(".nav-btn").forEach(btn => {
         btn.onclick = () => showView(btn.dataset.view);
     });
+
+    document.getElementById("toggleTermsBtn").onclick = (e) => {
+        e.preventDefault();
+        let box = document.getElementById("termsBox");
+        box.style.display = box.style.display === "block" ? "none" : "block";
+    };
     
     document.getElementById("loginBtn").onclick = openModal;
     document.getElementById("logoutBtn").onclick = logout;
@@ -922,6 +1016,14 @@
     document.getElementById("closeChat").onclick = () => document.getElementById("chatWindow").classList.remove("open");
     document.getElementById("sendChat").onclick = sendChat;
     
+    const sidebar = document.getElementById("sidebar");
+    const menuToggleBtn = document.getElementById("menuToggleBtn");
+
+    menuToggleBtn.onclick = () => {
+        sidebar.classList.toggle("open");
+        menuToggleBtn.innerHTML = sidebar.classList.contains("open") ? "✕ Закрыть" : "📋 Меню";
+    };
+
     initMap();
     showView("dashboard");
     updateLanguage();
