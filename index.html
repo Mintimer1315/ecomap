@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Татарстан Экокарта | Татарстан Экокартасы</title>
+    <!-- Yandex Maps API -->
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=5e3c3e3c-3e3c-3e3c-3e3c-3e3c3e3c3e3c&lang=ru_RU"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
+        }
+
+        :root {
+            --primary: #2e7d32;
+            --primary-dark: #1b5e20;
+            --primary-light: #4caf50;
+            --secondary: #ff9800;
+            --danger: #f44336;
+            --gray-100: #f5f5f5;
+            --gray-200: #e0e0e0;
+            --gray-700: #616161;
+            --gray-900: #212121;
+            --shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        body {
+            background: var(--gray-100);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            color: white;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            box-shadow: var(--shadow);
+            z-index: 10;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.4rem;
+            font-weight: bold;
+        }
+
+        .logo i {
+            font-size: 1.8rem;
+        }
+
+        .lang-switch {
+            display: flex;
+            gap: 8px;
+        }
+
+        .lang-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+
+        .lang-btn.active {
+            background: white;
+            color: var(--primary-dark);
+        }
+
+        .user-panel {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(255,255,255,0.15);
+            padding: 5px 18px;
+            border-radius: 40px;
+        }
+
+        .user-panel button {
+            background: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            color: var(--primary-dark);
+        }
+
+        /* Main layout */
+        .main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 360px;
+            background: white;
+            border-right: 1px solid var(--gray-200);
+            overflow-y: auto;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--gray-100);
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid var(--gray-200);
+        }
+
+        .card h3 {
+            margin-bottom: 12px;
+            color: var(--primary-dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        /* Navigation */
+        .nav-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .nav-btn {
+            flex: 1;
+            background: var(--gray-200);
+            border: none;
+            padding: 10px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .nav-btn:hover {
+            background: var(--primary-light);
+            color: white;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-approved {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .badge-pending {
+            background: #ffe0b2;
+            color: #e65100;
+        }
+
+        /* Marker list */
+        .marker-item {
+            padding: 10px;
+            border-bottom: 1px solid var(--gray-200);
+            cursor: pointer;
+        }
+
+        .marker-item:hover {
+            background: var(--gray-100);
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            visibility: hidden;
+            opacity: 0;
+            transition: 0.2s;
+        }
+
+        .modal.show {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .modal-card {
+            background: white;
+            max-width: 420px;
+            width: 90%;
+            padding: 28px;
+            border-radius: 32px;
+            text-align: center;
+        }
+
+        /* Chat */
+        .chat-fab {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            z-index: 99;
+        }
+
+        .chat-window {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 340px;
+            height: 450px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            display: none;
+            flex-direction: column;
+            z-index: 100;
+        }
+
+        .chat-window.open {
+            display: flex;
+        }
+
+        .chat-header {
+            background: var(--primary);
+            color: white;
+            padding: 12px;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .chat-msgs {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 10px;
+            gap: 8px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 12px;
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: absolute;
+                left: -360px;
+                top: 70px;
+                height: calc(100vh - 70px);
+                z-index: 200;
+                transition: left 0.3s;
+            }
+            .sidebar.open {
+                left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="logo">
+        <i class="fas fa-leaf"></i>
+        <span id="logoText">ЭкоКарта Татарстан</span>
+    </div>
+    <div class="lang-switch">
+        <button class="lang-btn active" data-lang="ru">РУС</button>
+        <button class="lang-btn" data-lang="tt">ТАТ</button>
+    </div>
+    <div class="user-panel">
+        <span id="userNameLabel">Гость</span>
+        <button id="loginBtn">Керү / Вход</button>
+        <button id="logoutBtn" style="display:none;">Чыгу / Выйти</button>
+    </div>
+</div>
+
+<div class="main">
+    <div class="sidebar" id="sidebar">
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-box">
+                <div class="stat-number" id="totalCount">0</div>
+                <div id="totalLabel">Всего меток</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="resolvedCount">0</div>
+                <div id="resolvedLabel">Решено</div>
+            </div>
+        </div>
+
+        <div class="card" id="ratingCard">
+            <h3><i class="fas fa-star"></i> <span id="ratingTitle">Эко-рейтинг</span></h3>
+            <canvas id="ratingChart" height="120"></canvas>
+            <div style="text-align: center; margin-top: 10px;">
+                <b id="userRating">0</b> <span id="ratingPoints">очков</span>
+            </div>
+        </div>
+
+        <div class="card" id="addCard">
+            <h3><i class="fas fa-plus-circle"></i> <span id="addTitle">Яңа метка / Новая метка</span></h3>
+            <select id="markerType">
+                <option value="problem">⚠️ <span id="problemText">Проблема</span></option>
+                <option value="recycling">♻️ <span id="recyclingText">Пункт приема</span></option>
+                <option value="subbotnik">🌿 <span id="subbotnikText">Субботник</span></option>
+            </select>
+            <textarea id="markerDesc" rows="2" placeholder="Тасвирлау / Описание..."></textarea>
+            <input type="text" id="coordsInput" placeholder="Картага басыгыз / Кликните на карту" readonly>
+            <label><input type="checkbox" id="needHelp"> 🆘 <span id="helpText">Ярдәм кирәк / Нужна помощь</span></label>
+            <button id="saveMarkerBtn" class="btn-primary"><span id="saveText">Саклау / Сохранить</span></button>
+        </div>
+
+        <div class="card" id="myMarkersCard">
+            <h3><i class="fas fa-list"></i> <span id="myMarkersTitle">Минем меткалар / Мои метки</span></h3>
+            <div id="myMarkersList">—</div>
+        </div>
+
+        <div class="card" id="moderationCard" style="display:none;">
+            <h3><i class="fas fa-shield-alt"></i> <span id="moderationTitle">Модерация</span></h3>
+            <div id="moderationList">—</div>
+        </div>
+
+        <div class="card" id="adminCard" style="display:none;">
+            <h3><i class="fas fa-crown"></i> <span id="adminTitle">Админ панель</span></h3>
+            <div id="adminUsersList"></div>
+            <button id="exportBtn" class="btn-primary" style="margin-top:10px;">📎 <span id="exportText">Экспорт</span></button>
+        </div>
+
+        <div class="nav-buttons">
+            <button class="nav-btn" data-view="dashboard"><i class="fas fa-home"></i> <span id="homeText">Баш бит</span></button>
+            <button class="nav-btn" data-view="add"><i class="fas fa-plus"></i> <span id="addNavText">Өстәү</span></button>
+            <button class="nav-btn" data-view="my"><i class="fas fa-list"></i> <span id="myNavText">Минем</span></button>
+        </div>
+    </div>
+    <div class="map-container">
+        <div id="map"></div>
+    </div>
+</div>
+
+<div class="chat-fab" id="chatFab">💬</div>
+<div class="chat-window" id="chatWindow">
+    <div class="chat-header">Поддержка <span style="float:right; cursor:pointer" id="closeChat">✕</span></div>
+    <div class="chat-msgs" id="chatMessages"></div>
+    <div class="chat-input">
+        <input type="text" id="chatInput" placeholder="Хат / Сообщение...">
+        <button id="sendChat">📤</button>
+    </div>
+</div>
+
+<!-- Auth Modal -->
+<div id="authModal" class="modal">
+    <div class="modal-card">
+        <h3><i class="fas fa-leaf"></i> <span id="authTitle">Татарстан Экокартасына керү</span></h3>
+        <div style="margin: 16px 0;">
+            <input type="text" id="loginEmail" placeholder="Email">
+            <input type="password" id="loginPassword" placeholder="Серсүз / Пароль">
+        </div>
+        <button id="doLogin" class="btn-primary"><span id="loginBtnText">Керү / Войти</span></button>
+        <hr style="margin: 16px 0">
+        <p><span id="noAccountText">Аккаунт юк?</span> <span id="registerHereText">Теркәлү</span></p>
+        <input type="text" id="regName" placeholder="Исем / Имя">
+        <input type="text" id="regEmail" placeholder="Email">
+        <input type="password" id="regPassword" placeholder="Серсүз (4 хәрефтән) / Пароль (мин 4)">
+        <button id="doRegister" style="margin-top:8px; background:#10b981; color:white; width:100%; padding:10px; border:none; border-radius:30px;"><span id="regBtnText">Теркәлү</span></button>
+        <p id="authMsg" style="color:red; margin-top:12px; font-size:13px;"></p>
+        <button id="closeModal" style="margin-top:16px; background:#e5e7eb; width:100%; padding:10px; border:none; border-radius:30px;">Ябу / Закрыть</button>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'http://localhost:5000/api';
+
+    const translations = {
+        ru: {
+            logoText: "ЭкоКарта Татарстан",
+            totalLabel: "Всего меток",
+            resolvedLabel: "Решено",
+            ratingTitle: "Эко-рейтинг",
+            ratingPoints: "очков",
+            addTitle: "Новая метка",
+            problemText: "Проблема",
+            recyclingText: "Пункт приема",
+            subbotnikText: "Субботник",
+            helpText: "Нужна помощь",
+            saveText: "Сохранить",
+            myMarkersTitle: "Мои метки",
+            moderationTitle: "Модерация",
+            adminTitle: "Админ панель",
+            exportText: "Экспорт",
+            homeText: "Главная",
+            addNavText: "Добавить",
+            myNavText: "Мои",
+            authTitle: "Вход в ЭкоКарту",
+            loginBtnText: "Войти",
+            noAccountText: "Нет аккаунта?",
+            registerHereText: "Зарегистрироваться",
+            regBtnText: "Зарегистрироваться"
+        },
+        tt: {
+            logoText: "Татарстан Экокартасы",
+            totalLabel: "Барлык меткалар",
+            resolvedLabel: "Чишелгән",
+            ratingTitle: "Эко-рейтинг",
+            ratingPoints: "балл",
+            addTitle: "Яңа метка",
+            problemText: "Проблема",
+            recyclingText: "Кабул итү пункты",
+            subbotnikText: "Субботник",
+            helpText: "Ярдәм кирәк",
+            saveText: "Саклау",
+            myMarkersTitle: "Минем меткалар",
+            moderationTitle: "Модерация",
+            adminTitle: "Админ панель",
+            exportText: "Экспорт",
+            homeText: "Баш бит",
+            addNavText: "Өстәү",
+            myNavText: "Минем",
+            authTitle: "Татарстан Экокартасына керү",
+            loginBtnText: "Керү",
+            noAccountText: "Аккаунт юк?",
+            registerHereText: "Теркәлү",
+            regBtnText: "Теркәлү"
+        }
+    };
+    
+    let currentLang = "ru";
+    
+    function updateLanguage() {
+        const t = translations[currentLang];
+        document.getElementById("logoText").innerText = t.logoText;
+        document.getElementById("totalLabel").innerText = t.totalLabel;
+        document.getElementById("resolvedLabel").innerText = t.resolvedLabel;
+        document.getElementById("ratingTitle").innerText = t.ratingTitle;
+        document.getElementById("ratingPoints").innerText = t.ratingPoints;
+        document.getElementById("addTitle").innerText = t.addTitle;
+        document.getElementById("helpText").innerHTML = t.helpText;
+        document.getElementById("saveText").innerHTML = t.saveText;
+        document.getElementById("myMarkersTitle").innerHTML = t.myMarkersTitle;
+        document.getElementById("moderationTitle").innerHTML = t.moderationTitle;
+        document.getElementById("adminTitle").innerHTML = t.adminTitle;
+        document.getElementById("exportText").innerHTML = t.exportText;
+        document.getElementById("homeText").innerHTML = t.homeText;
+        document.getElementById("addNavText").innerHTML = t.addNavText;
+        document.getElementById("myNavText").innerHTML = t.myNavText;
+        document.getElementById("authTitle").innerHTML = t.authTitle;
+        document.getElementById("loginBtnText").innerHTML = t.loginBtnText;
+        document.getElementById("noAccountText").innerHTML = t.noAccountText;
+        document.getElementById("registerHereText").innerHTML = t.registerHereText;
+        document.getElementById("regBtnText").innerHTML = t.regBtnText;
+    }
+    
+    document.querySelectorAll(".lang-btn").forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll(".lang-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            currentLang = btn.dataset.lang;
+            updateLanguage();
+        };
+    });
+    
+    let currentUser = null;
+    let USERS = [];
+    let MARKERS = [];
+    let CHAT = [];
+    let map = null;
+    let selectedCoords = null;
+    let tempPlacemark = null;
+    let ratingChart = null;
+
+    async function loadData() {
+        try {
+            const uRes = await fetch(`${API_URL}/users`);
+            USERS = await uRes.json();
+
+            const mRes = await fetch(`${API_URL}/markers`);
+            MARKERS = await mRes.json();
+
+            renderMarkers();
+            updateUI();
+        } catch (err) {
+            console.error("Ошибка подключения к серверу:", err);
+        }
+    }
+
+    function initMap() {
+        ymaps.ready(() => {
+            map = new ymaps.Map("map", {
+                center: [55.796, 49.108],
+                zoom: 12,
+                controls: ["zoomControl", "fullscreenControl"]
+            });
+            
+            map.events.add("click", (e) => {
+                if(!currentUser) {
+                    alert("Кергез / Войдите!");
+                    return;
+                }
+                let coords = e.get("coords");
+                selectedCoords = [coords[0], coords[1]];
+                document.getElementById("coordsInput").value = coords[0].toFixed(5) + ", " + coords[1].toFixed(5);
+                if(tempPlacemark) map.geoObjects.remove(tempPlacemark);
+                tempPlacemark = new ymaps.Placemark(coords, { balloonContent: "Сайланган урын / Выбранное место" });
+                map.geoObjects.add(tempPlacemark);
+            });
+            
+            loadData();
+        });
+    }
+    
+    function renderMarkers() {
+        if(!map) return;
+        map.geoObjects.removeAll();
+        if(tempPlacemark) map.geoObjects.add(tempPlacemark);
+        
+        MARKERS.forEach(m => {
+            if(m.status === "approved") {
+                let color = m.type === "problem" ? "red" : (m.type === "recycling" ? "blue" : "green");
+                let placemark = new ymaps.Placemark([parseFloat(m.lat), parseFloat(m.lng)], {
+                    balloonContent: `<b>${m.type}</b><br>${m.description || m.desc}<br>${m.need_help ? "🆘 Ярдәм кирәк / Нужна помощь" : ""}`
+                }, { preset: `islands#${color}StretchyIcon` });
+                map.geoObjects.add(placemark);
+            }
+        });
+    }
+    
+    function updateUI() {
+        if(currentUser) {
+            document.getElementById("userNameLabel").innerHTML = `👤 ${currentUser.name}`;
+            document.getElementById("loginBtn").style.display = "none";
+            document.getElementById("logoutBtn").style.display = "inline-block";
+            document.getElementById("userRating").innerText = currentUser.rating || 0;
+            
+            let isMod = currentUser.role === "moderator" || currentUser.role === "admin";
+            let isAdmin = currentUser.role === "admin";
+            document.getElementById("moderationCard").style.display = isMod ? "block" : "none";
+            document.getElementById("adminCard").style.display = isAdmin ? "block" : "none";
+            
+            if(isMod) renderModeration();
+            if(isAdmin) renderAdminPanel();
+        } else {
+            document.getElementById("userNameLabel").innerHTML = "Гость / Кунак";
+            document.getElementById("loginBtn").style.display = "inline-block";
+            document.getElementById("logoutBtn").style.display = "none";
+            document.getElementById("userRating").innerText = "0";
+            document.getElementById("moderationCard").style.display = "none";
+            document.getElementById("adminCard").style.display = "none";
+        }
+        
+        document.getElementById("totalCount").innerText = MARKERS.length;
+        let resolved = MARKERS.filter(m => m.status === "resolved").length;
+        document.getElementById("resolvedCount").innerText = resolved;
+        
+        renderMyMarkers();
+        updateRatingChart();
+    }
+    
+    function updateRatingChart() {
+        let ctx = document.getElementById("ratingChart").getContext("2d");
+        let rating = currentUser ? currentUser.rating || 0 : 0;
+        if(ratingChart) ratingChart.destroy();
+        ratingChart = new Chart(ctx, {
+            type: "doughnut",
+            data: {
+                labels: ["Сезнең рейтинг / Ваш рейтинг", "Калган / Осталось"],
+                datasets: [{ data: [rating, Math.max(0, 500 - rating)], backgroundColor: ["#2e7d32", "#e0e0e0"] }]
+            },
+            options: { cutout: "60%", plugins: { legend: { position: "bottom", labels: { font: { size: 10 } } } } }
+        });
+    }
+    
+    async function addMarker() {
+        if(!currentUser) { alert("Кергез / Войдите!"); return; }
+        if(!selectedCoords) { alert("Картага басыгыз / Кликните на карту"); return; }
+        let desc = document.getElementById("markerDesc").value.trim();
+        if(!desc) { alert("Тасвирлау языгыз / Введите описание"); return; }
+        
+        const newMarkerData = {
+            type: document.getElementById("markerType").value,
+            lat: selectedCoords[0],
+            lng: selectedCoords[1],
+            description: desc,
+            status: (currentUser.role === "admin" || currentUser.role === "moderator") ? "approved" : "pending",
+            author_id: currentUser.id,
+            need_help: document.getElementById("needHelp").checked
+        };
+
+        try {
+            const res = await fetch(`${API_URL}/markers`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newMarkerData)
+            });
+            const savedMarker = await res.json();
+            MARKERS.push(savedMarker);
+
+            renderMarkers();
+            renderMyMarkers();
+            if(currentUser.role === "moderator" || currentUser.role === "admin") renderModeration();
+            updateUI();
+            
+            document.getElementById("markerDesc").value = "";
+            document.getElementById("coordsInput").value = "";
+            if(tempPlacemark) map.geoObjects.remove(tempPlacemark);
+            selectedCoords = null;
+            alert("Метка өстәлде / Метка добавлена!");
+        } catch (err) {
+            alert("Ошибка сохранения метки в БД");
+        }
+    }
+    
+    function renderMyMarkers() {
+        if(!currentUser) { document.getElementById("myMarkersList").innerHTML = "Кергез / Войдите"; return; }
+        let my = MARKERS.filter(m => (m.author_id || m.authorId) === currentUser.id);
+        if(my.length === 0) { document.getElementById("myMarkersList").innerHTML = "Меткалар юк / Нет меток"; return; }
+        let html = "";
+        my.forEach(m => {
+            html += `<div class="marker-item">
+                        <b>${m.type}</b> — ${m.description || m.desc}<br>
+                        <span class="badge ${m.status === "approved" ? "badge-approved" : "badge-pending"}">${m.status === "approved" ? "✅ Расланган / Одобрено" : "⏳ Тикшерүдә / На проверке"}</span>
+                        ${m.need_help ? " 🆘" : ""}
+                    </div>`;
+        });
+        document.getElementById("myMarkersList").innerHTML = html;
+    }
+    
+    function renderModeration() {
+        let pending = MARKERS.filter(m => m.status === "pending");
+        let container = document.getElementById("moderationList");
+        if(pending.length === 0) { container.innerHTML = "Меткалар юк / Нет меток"; return; }
+        let html = "";
+        pending.forEach(m => {
+            html += `<div style="border-bottom:1px solid #ddd; margin-bottom:12px; padding-bottom:8px;">
+                        <b>${m.description || m.desc}</b><br>
+                        <button onclick="approveMarker(${m.id})" style="background:#2e7d32; color:white; border:none; padding:4px 12px; border-radius:20px;">✅ Раслау / Одобрить</button>
+                        <button onclick="rejectMarker(${m.id})" style="background:#f44336; color:white; border:none; padding:4px 12px; border-radius:20px;">❌ Кире кагу / Отклонить</button>
+                    </div>`;
+        });
+        container.innerHTML = html;
+    }
+    
+    window.approveMarker = async function(id) {
+        try {
+            await fetch(`${API_URL}/markers/${id}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'approved' })
+            });
+            await loadData();
+            alert("Метка расланды / Метка одобрена!");
+        } catch (err) {
+            alert("Ошибка модерации");
+        }
+    };
+    
+    window.rejectMarker = async function(id) {
+        try {
+            await fetch(`${API_URL}/markers/${id}`, { method: 'DELETE' });
+            await loadData();
+            alert("Метка кире кагылды / Метка отклонена");
+        } catch (err) {
+            alert("Ошибка удаления");
+        }
+    };
+    
+    function renderAdminPanel() {
+        if(!currentUser || currentUser.role !== "admin") return;
+        let container = document.getElementById("adminUsersList");
+        let html = "";
+        USERS.forEach(u => {
+            html += `<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #ddd; padding:8px 0;">
+                        <div><b>${u.name}</b> (${u.role})<br><small>${u.email}</small></div>
+                        <div>
+                            <select onchange="changeRole(${u.id}, this.value)" style="padding:4px;">
+                                <option value="user" ${u.role === "user" ? "selected" : ""}>Кулланучы / Пользователь</option>
+                                <option value="moderator" ${u.role === "moderator" ? "selected" : ""}>Модератор</option>
+                                <option value="admin" ${u.role === "admin" ? "selected" : ""}>Админ</option>
+                            </select>
+                        </div>
+                    </div>`;
+        });
+        container.innerHTML = html;
+    }
+    
+    window.changeRole = function(userId, newRole) {
+        let user = USERS.find(u => u.id === userId);
+        if(user) {
+            user.role = newRole;
+            renderAdminPanel();
+            alert("Роль үзгәртелде / Роль изменена");
+        }
+    };
+    
+    document.getElementById("exportBtn")?.addEventListener("click", () => {
+        let data = { users: USERS, markers: MARKERS, chat: CHAT };
+        let a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], {type: "application/json"}));
+        a.download = `eco_data_${Date.now()}.json`;
+        a.click();
+    });
+    
+    function openModal() { document.getElementById("authModal").classList.add("show"); }
+    function closeModal() { document.getElementById("authModal").classList.remove("show"); }
+    
+    async function doLogin() {
+        let email = document.getElementById("loginEmail").value.trim();
+        let password = document.getElementById("loginPassword").value;
+        
+        try {
+            const res = await fetch(`${API_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+
+            if(res.ok) {
+                currentUser = await res.json();
+                closeModal();
+                updateUI();
+                alert(`Рәхим итегез, ${currentUser.name}! / Добро пожаловать!`);
+                document.getElementById("loginEmail").value = "";
+                document.getElementById("loginPassword").value = "";
+            } else {
+                document.getElementById("authMsg").innerHTML = "❌ Неверный email или пароль";
+            }
+        } catch (err) {
+            document.getElementById("authMsg").innerHTML = "❌ Ошибка подключения к серверу";
+        }
+    }
+    
+    async function doRegister() {
+        let name = document.getElementById("regName").value.trim();
+        let email = document.getElementById("regEmail").value.trim();
+        let password = document.getElementById("regPassword").value;
+
+        if(!name || !email || !password) {
+            document.getElementById("authMsg").innerHTML = "❌ Заполните все поля";
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password })
+            });
+
+            if(res.ok) {
+                document.getElementById("authMsg").innerHTML = "✅ Регистрация успешна! Теперь войдите";
+                document.getElementById("regName").value = "";
+                document.getElementById("regEmail").value = "";
+                document.getElementById("regPassword").value = "";
+                await loadData();
+            } else {
+                const data = await res.json();
+                document.getElementById("authMsg").innerHTML = `❌ ${data.error || 'Ошибка регистрации'}`;
+            }
+        } catch (err) {
+            document.getElementById("authMsg").innerHTML = "❌ Ошибка сервера";
+        }
+    }
+    
+    function logout() {
+        currentUser = null;
+        updateUI();
+        alert("Сез системадан чыктыгыз / Вы вышли из системы");
+    }
+    
+    function sendChat() {
+        if(!currentUser) { alert("Кергез / Войдите"); return; }
+        let text = document.getElementById("chatInput").value.trim();
+        if(!text) return;
+        CHAT.push({ userId: currentUser.id, userName: currentUser.name, text, time: new Date() });
+        renderChat();
+        document.getElementById("chatInput").value = "";
+    }
+    
+    function renderChat() {
+        let container = document.getElementById("chatMessages");
+        let msgs = CHAT.slice(-20);
+        if(msgs.length === 0) { container.innerHTML = "<div style='text-align:center; color:#999; padding:20px;'>Хатлар юк / Нет сообщений</div>"; return; }
+        container.innerHTML = msgs.map(m => `<div style="margin-bottom:8px;"><b>${m.userName}:</b> ${m.text}</div>`).join("");
+    }
+    
+    function showView(view) {
+        document.getElementById("addCard").style.display = view === "add" ? "block" : "none";
+        document.getElementById("myMarkersCard").style.display = view === "my" ? "block" : "none";
+        document.getElementById("moderationCard").style.display = (view === "moderation" && currentUser && (currentUser.role === "moderator" || currentUser.role === "admin")) ? "block" : "none";
+        document.getElementById("adminCard").style.display = (view === "admin" && currentUser && currentUser.role === "admin") ? "block" : "none";
+        document.getElementById("ratingCard").style.display = view === "dashboard" ? "block" : "none";
+        document.getElementById("statsGrid").style.display = view === "dashboard" ? "grid" : "none";
+    }
+    
+    document.querySelectorAll(".nav-btn").forEach(btn => {
+        btn.onclick = () => showView(btn.dataset.view);
+    });
+    
+    document.getElementById("loginBtn").onclick = openModal;
+    document.getElementById("logoutBtn").onclick = logout;
+    document.getElementById("doLogin").onclick = doLogin;
+    document.getElementById("doRegister").onclick = doRegister;
+    document.getElementById("closeModal").onclick = closeModal;
+    document.getElementById("saveMarkerBtn").onclick = addMarker;
+    document.getElementById("chatFab").onclick = () => document.getElementById("chatWindow").classList.toggle("open");
+    document.getElementById("closeChat").onclick = () => document.getElementById("chatWindow").classList.remove("open");
+    document.getElementById("sendChat").onclick = sendChat;
+    
+    initMap();
+    showView("dashboard");
+    updateLanguage();
+</script>
+</body>
+</html>
