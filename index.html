@@ -560,13 +560,25 @@
     let tempPlacemark = null;
     let ratingChart = null;
 
+    // Проверяем сохраненного пользователя при старте
+    function checkSavedUser() {
+        const saved = localStorage.getItem('ecomap_user');
+        if (saved) {
+            try {
+                currentUser = JSON.parse(saved);
+            } catch (e) {
+                localStorage.removeItem('ecomap_user');
+            }
+        }
+    }
+
     async function loadData() {
         try {
             const uRes = await fetch(`${API_URL}/users`);
-            USERS = await uRes.json();
+            if(uRes.ok) USERS = await uRes.json();
 
             const mRes = await fetch(`${API_URL}/markers`);
-            MARKERS = await mRes.json();
+            if(mRes.ok) MARKERS = await mRes.json();
 
             renderMarkers();
             updateUI();
@@ -576,6 +588,8 @@
     }
 
     function initMap() {
+        checkSavedUser(); // Восстанавливаем авторизацию
+
         ymaps.ready(() => {
             map = new ymaps.Map("map", {
                 center: [55.796, 49.108],
@@ -618,7 +632,7 @@
     
     function updateUI() {
         if(currentUser) {
-            document.getElementById("userNameLabel").innerHTML = `👤 ${currentUser.name}`;
+            document.getElementById("userNameLabel").innerHTML = `👤 ${currentUser.name || currentUser.email}`;
             document.getElementById("loginBtn").style.display = "none";
             document.getElementById("logoutBtn").style.display = "inline-block";
             document.getElementById("userRating").innerText = currentUser.rating || 0;
@@ -805,15 +819,19 @@
                 body: JSON.stringify({ email, password })
             });
 
+            const data = await res.json();
+
             if(res.ok) {
-                currentUser = await res.json();
+                currentUser = data.user || data;
+                localStorage.setItem('ecomap_user', JSON.stringify(currentUser)); // Сохраняем вход
+                
                 closeModal();
                 updateUI();
-                alert(`Рәхим итегез, ${currentUser.name}! / Добро пожаловать!`);
+                alert(`Рәхим итегез, ${currentUser.name || currentUser.email}! / Добро пожаловать!`);
                 document.getElementById("loginEmail").value = "";
                 document.getElementById("loginPassword").value = "";
             } else {
-                document.getElementById("authMsg").innerHTML = "❌ Неверный email или пароль";
+                document.getElementById("authMsg").innerHTML = `❌ ${data.error || 'Неверный email или пароль'}`;
             }
         } catch (err) {
             document.getElementById("authMsg").innerHTML = "❌ Ошибка подключения к серверу";
@@ -837,14 +855,20 @@
                 body: JSON.stringify({ name, email, password })
             });
 
+            const data = await res.json();
+
             if(res.ok) {
-                document.getElementById("authMsg").innerHTML = "✅ Регистрация успешна! Теперь войдите";
+                currentUser = data.user || data;
+                localStorage.setItem('ecomap_user', JSON.stringify(currentUser)); // Автоматически входим при регистрации
+                
+                closeModal();
+                updateUI();
+                alert("✅ Регистрация успешна!");
                 document.getElementById("regName").value = "";
                 document.getElementById("regEmail").value = "";
                 document.getElementById("regPassword").value = "";
                 await loadData();
             } else {
-                const data = await res.json();
                 document.getElementById("authMsg").innerHTML = `❌ ${data.error || 'Ошибка регистрации'}`;
             }
         } catch (err) {
@@ -853,6 +877,7 @@
     }
     
     function logout() {
+        localStorage.removeItem('ecomap_user'); // Удаляем сохраненный вход
         currentUser = null;
         updateUI();
         alert("Сез системадан чыктыгыз / Вы вышли из системы");
@@ -862,7 +887,7 @@
         if(!currentUser) { alert("Кергез / Войдите"); return; }
         let text = document.getElementById("chatInput").value.trim();
         if(!text) return;
-        CHAT.push({ userId: currentUser.id, userName: currentUser.name, text, time: new Date() });
+        CHAT.push({ userId: currentUser.id, userName: currentUser.name || currentUser.email, text, time: new Date() });
         renderChat();
         document.getElementById("chatInput").value = "";
     }
